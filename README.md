@@ -1,125 +1,105 @@
-@ExtendWith(MockitoExtension.class)
-class HoldDtoToIncatHoldDtoMapperTest {
+package silicon.watheeqinbound.updateamount.service.command;
+
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.MockitoAnnotations;
+import silicon.platform.Context;
+import silicon.platform.contract.CommandResult;
+import silicon.platform.contract.Type;
+import silicon.watheeqinbound.utils.WatheeqResponseHandler;
+import silicon.watheeqinbound.liftrestrictions.service.banktransfer.domestic.data.dto.TicketDetailsQuery;
+import silicon.watheeqinbound.liftrestrictions.service.banktransfer.domestic.data.dto.TicketDetailsResponse;
+import silicon.watheeqinbound.liftrestrictions.service.banktransfer.domestic.service.TicketInterService;
+
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.*;
+import static org.junit.jupiter.api.Assertions.*;
+
+public class UpdateAmountServiceTest {
 
     @Mock
-    private InstantToLongMapper instantToLongMapper;
+    private WatheeqResponseHandler responseHandler;
+
+    @Mock
+    private EventHandler eventHandler;
+
+    @Mock
+    private TicketInterService overrideTicketInterService;
+
+    @Mock
+    private TicketInterService liftTicketInterService;
+
+    @Mock
+    private TicketInterService getTicketInterService;
 
     @InjectMocks
-    private HoldDtoToIncatHoldDtoMapperImpl dtoMapper;
+    private UpdateAmountService updateAmountService;
 
-    @Test
-    void test_map_when_holdDto_is_null() {
-        HoldDto holdDto = null;
-        IncatHoldDto actual = dtoMapper.map(holdDto);
-        assertThat(actual).isNull();
+    private Context context;
+    private UpdateAmountCommand command;
+
+    @BeforeEach
+    public void setUp() {
+        MockitoAnnotations.openMocks(this);
+        context = new Context();
+        command = new UpdateAmountCommand();
     }
 
     @Test
-    void test_map_when_holdDto_has_empty_holds() {
-        HoldDto holdDto = new HoldDto();
-        holdDto.setHolds(Collections.emptyList());
-        IncatHoldDto actual = dtoMapper.map(holdDto);
-        assertThat(actual).isNotNull();
-        assertThat(actual.getData()).isEmpty();
+    public void testExecuteWithReverseAction() {
+        command.setBlockStatus(BlockStatus.REVERSE_ACTION);
+        var ticketList = new CommandResult<>(List.of(new TicketDetailsResponse()), Type.OK);
+        when(getTicketInterService.decorate(any(), any())).thenReturn(ticketList);
+
+        CommandResult<Void> result = updateAmountService.execute(command, context);
+
+        assertNotNull(result);
+        assertTrue(result.getData().isPresent());
+        verify(getTicketInterService, times(1)).decorate(any(), any());
+        verify(responseHandler, times(1)).createDataSuccessCommandResponse(any(), any());
     }
 
     @Test
-    void test_map_when_holdDto_has_data() {
-        HoldDetailDto holdDetailDto = new HoldDetailDto();
-        holdDetailDto.setId("id");
-        holdDetailDto.setAuthorizationReferenceId("authRef");
-        holdDetailDto.setAmount(new Money(BigDecimal.TEN, "USD"));
-        holdDetailDto.setAccountNumber("accNum");
-        holdDetailDto.setSourceCurrencyRate(new BigDecimal("1.1"));
-        holdDetailDto.setSettlementCurrencyRate(new BigDecimal("1.2"));
-        holdDetailDto.setVatRate(new BigDecimal("1.3"));
-        holdDetailDto.setTags(List.of("tag1", "tag2"));
-        holdDetailDto.setEnrichments(Map.of("key1", "value1"));
+    public void testExecuteWithOverrideAction() {
+        command.setBlockStatus(BlockStatus.OVERRIDE_ACTION);
+        var ticketList = new CommandResult<>(List.of(new TicketDetailsResponse()), Type.OK);
+        when(getTicketInterService.decorate(any(), any())).thenReturn(ticketList);
 
-        HoldDto holdDto = new HoldDto();
-        holdDto.setHolds(List.of(holdDetailDto));
+        CommandResult<Void> result = updateAmountService.execute(command, context);
 
-        given(instantToLongMapper.map(any())).willReturn(1L);
-
-        IncatHoldDto actual = dtoMapper.map(holdDto);
-
-        assertThat(actual).isNotNull();
-        assertThat(actual.getData()).hasSize(1);
-        IncatHoldDetailDto incatHoldDetailDto = actual.getData().get(0);
-        assertThat(incatHoldDetailDto.getId()).isEqualTo("id");
-        assertThat(incatHoldDetailDto.getAuthorizationReferenceId()).isEqualTo("authRef");
-        assertThat(incatHoldDetailDto.getAmount()).isEqualTo(new Money(BigDecimal.TEN, "USD"));
-        assertThat(incatHoldDetailDto.getAccountNumber()).isEqualTo("accNum");
-        assertThat(incatHoldDetailDto.getSourceCurrencyRate()).isEqualTo(new BigDecimal("1.1"));
-        assertThat(incatHoldDetailDto.getSettlementCurrencyRate()).isEqualTo(new BigDecimal("1.2"));
-        assertThat(incatHoldDetailDto.getVatRate()).isEqualTo(new BigDecimal("1.3"));
-        assertThat(incatHoldDetailDto.getTags()).containsExactlyInAnyOrder("tag1", "tag2");
-        assertThat(incatHoldDetailDto.getEnrichments()).containsExactlyInAnyOrderEntriesOf(Map.of("key1", "value1"));
+        assertNotNull(result);
+        assertTrue(result.getData().isPresent());
+        verify(getTicketInterService, times(1)).decorate(any(), any());
+        verify(responseHandler, times(1)).createDataSuccessCommandResponse(any(), any());
     }
 
     @Test
-    void test_map_when_holdDetailDto_is_null() {
-        HoldDetailDto holdDetailDto = null;
-        IncatHoldDetailDto actual = dtoMapper.map(holdDetailDto);
-        assertThat(actual).isNull();
+    public void testExecuteWithInvalidStatus() {
+        command.setBlockStatus(BlockStatus.INVALID);
+        var ticketList = new CommandResult<>(List.of(new TicketDetailsResponse()), Type.OK);
+        when(getTicketInterService.decorate(any(), any())).thenReturn(ticketList);
+
+        CommandResult<Void> result = updateAmountService.execute(command, context);
+
+        assertNotNull(result);
+        assertTrue(result.getData().isPresent());
+        verify(getTicketInterService, times(1)).decorate(any(), any());
+        verify(responseHandler, times(1)).createDataSuccessCommandResponse(any(), any());
     }
 
     @Test
-    void test_map_when_holdDetailDto_has_data() {
-        HoldDetailDto holdDetailDto = new HoldDetailDto();
-        holdDetailDto.setId("id");
-        holdDetailDto.setAuthorizationReferenceId("authRef");
-        holdDetailDto.setAmount(new Money(BigDecimal.TEN, "USD"));
-        holdDetailDto.setAccountNumber("accNum");
-        holdDetailDto.setSourceCurrencyRate(new BigDecimal("1.1"));
-        holdDetailDto.setSettlementCurrencyRate(new BigDecimal("1.2"));
-        holdDetailDto.setVatRate(new BigDecimal("1.3"));
-        holdDetailDto.setTags(List.of("tag1", "tag2"));
-        holdDetailDto.setEnrichments(Map.of("key1", "value1"));
+    public void testExecuteWithValidStatus() {
+        command.setBlockStatus(BlockStatus.VALID);
+        var ticketList = new CommandResult<>(List.of(new TicketDetailsResponse()), Type.OK);
+        when(getTicketInterService.decorate(any(), any())).thenReturn(ticketList);
 
-        given(instantToLongMapper.map(any())).willReturn(1L);
+        CommandResult<Void> result = updateAmountService.execute(command, context);
 
-        IncatHoldDetailDto actual = dtoMapper.map(holdDetailDto);
-
-        assertThat(actual).isNotNull();
-        assertThat(actual.getId()).isEqualTo("id");
-        assertThat(actual.getAuthorizationReferenceId()).isEqualTo("authRef");
-        assertThat(actual.getAmount()).isEqualTo(new Money(BigDecimal.TEN, "USD"));
-        assertThat(actual.getAccountNumber()).isEqualTo("accNum");
-        assertThat(actual.getSourceCurrencyRate()).isEqualTo(new BigDecimal("1.1"));
-        assertThat(actual.getSettlementCurrencyRate()).isEqualTo(new BigDecimal("1.2"));
-        assertThat(actual.getVatRate()).isEqualTo(new BigDecimal("1.3"));
-        assertThat(actual.getTags()).containsExactlyInAnyOrder("tag1", "tag2");
-        assertThat(actual.getEnrichments()).containsExactlyInAnyOrderEntriesOf(Map.of("key1", "value1"));
-    }
-
-    @Test
-    void test_holdDetailDtoListToIncatHoldDetailDtoList_when_list_is_null() {
-        List<HoldDetailDto> list = null;
-        List<IncatHoldDetailDto> actual = dtoMapper.holdDetailDtoListToIncatHoldDetailDtoList(list);
-        assertThat(actual).isNull();
-    }
-
-    @Test
-    void test_holdDetailDtoListToIncatHoldDetailDtoList_when_list_has_data() {
-        HoldDetailDto holdDetailDto = new HoldDetailDto();
-        holdDetailDto.setId("id");
-        holdDetailDto.setAuthorizationReferenceId("authRef");
-        holdDetailDto.setAmount(new Money(BigDecimal.TEN, "USD"));
-        holdDetailDto.setAccountNumber("accNum");
-
-        List<HoldDetailDto> list = List.of(holdDetailDto);
-
-        given(instantToLongMapper.map(any())).willReturn(1L);
-
-        List<IncatHoldDetailDto> actualList = dtoMapper.holdDetailDtoListToIncatHoldDetailDtoList(list);
-
-        assertThat(actualList).hasSize(1);
-
-        IncatHoldDetailDto first = actualList.get(0);
-        assertThat(first.getId()).isEqualTo("id");
-        assertThat(first.getAuthorizationReferenceId()).isEqualTo("authRef");
-        assertThat(first.getAmount()).isEqualTo(new Money(BigDecimal.TEN, "USD"));
-        assertThat(first.getAccountNumber()).isEqualTo("accNum");
+        assertNotNull(result);
+        assertTrue(result.getData().isPresent());
+        verify(getTicketInterService, times(1)).decorate(any(), any());
+        verify(responseHandler, times(1)).createDataSuccessCommandResponse(any(), any());
     }
 }

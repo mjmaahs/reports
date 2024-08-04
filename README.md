@@ -1,105 +1,44 @@
-package silicon.watheeqinbound.updateamount.service.command;
-
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-import org.mockito.InjectMocks;
-import org.mockito.Mock;
-import org.mockito.MockitoAnnotations;
-import silicon.platform.Context;
-import silicon.platform.contract.CommandResult;
-import silicon.platform.contract.Type;
-import silicon.watheeqinbound.utils.WatheeqResponseHandler;
-import silicon.watheeqinbound.liftrestrictions.service.banktransfer.domestic.data.dto.TicketDetailsQuery;
-import silicon.watheeqinbound.liftrestrictions.service.banktransfer.domestic.data.dto.TicketDetailsResponse;
-import silicon.watheeqinbound.liftrestrictions.service.banktransfer.domestic.service.TicketInterService;
-
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.*;
 import static org.junit.jupiter.api.Assertions.*;
+import org.junit.jupiter.api.Test;
+import java.util.HashMap;
+import java.util.Map;
 
-public class UpdateAmountServiceTest {
+class GenerateTanfeethExcelCommandTest {
 
-    @Mock
-    private WatheeqResponseHandler responseHandler;
+    @Test
+    void testEqualsAndHashCode() {
+        Map<String, Object> payload = new HashMap<>();
+        payload.put("key1", "value1");
 
-    @Mock
-    private EventHandler eventHandler;
+        GenerateTanfeethExcelCommand cmd1 = new GenerateTanfeethExcelCommand("report1", new byte[]{1, 2, 3}, payload);
+        GenerateTanfeethExcelCommand cmd2 = new GenerateTanfeethExcelCommand("report1", new byte[]{1, 2, 3}, payload);
+        GenerateTanfeethExcelCommand cmd3 = new GenerateTanfeethExcelCommand("report2", new byte[]{4, 5, 6}, null);
 
-    @Mock
-    private TicketInterService overrideTicketInterService;
-
-    @Mock
-    private TicketInterService liftTicketInterService;
-
-    @Mock
-    private TicketInterService getTicketInterService;
-
-    @InjectMocks
-    private UpdateAmountService updateAmountService;
-
-    private Context context;
-    private UpdateAmountCommand command;
-
-    @BeforeEach
-    public void setUp() {
-        MockitoAnnotations.openMocks(this);
-        context = new Context();
-        command = new UpdateAmountCommand();
+        assertEquals(cmd1, cmd2);
+        assertNotEquals(cmd1, cmd3);
+        assertEquals(cmd1.hashCode(), cmd2.hashCode());
+        assertNotEquals(cmd1.hashCode(), cmd3.hashCode());
     }
 
     @Test
-    public void testExecuteWithReverseAction() {
-        command.setBlockStatus(BlockStatus.REVERSE_ACTION);
-        var ticketList = new CommandResult<>(List.of(new TicketDetailsResponse()), Type.OK);
-        when(getTicketInterService.decorate(any(), any())).thenReturn(ticketList);
+    void testToString() {
+        Map<String, Object> payload = new HashMap<>();
+        payload.put("key1", "value1");
 
-        CommandResult<Void> result = updateAmountService.execute(command, context);
-
-        assertNotNull(result);
-        assertTrue(result.getData().isPresent());
-        verify(getTicketInterService, times(1)).decorate(any(), any());
-        verify(responseHandler, times(1)).createDataSuccessCommandResponse(any(), any());
+        GenerateTanfeethExcelCommand cmd = new GenerateTanfeethExcelCommand("report1", null, payload);
+        String expected = "GenerateTanfeethExcelCommand{reportName='report1', templateData=null, payload={key1=value1}}";
+        assertEquals(expected, cmd.toString());
     }
 
     @Test
-    public void testExecuteWithOverrideAction() {
-        command.setBlockStatus(BlockStatus.OVERRIDE_ACTION);
-        var ticketList = new CommandResult<>(List.of(new TicketDetailsResponse()), Type.OK);
-        when(getTicketInterService.decorate(any(), any())).thenReturn(ticketList);
+    void testConstructorAndArguments() {
+        Map<String, Object> payload = new HashMap<>();
+        payload.put("key1", "value1");
 
-        CommandResult<Void> result = updateAmountService.execute(command, context);
+        Exception exception = assertThrows(NullPointerException.class, () -> {
+            new GenerateTanfeethExcelCommand(null, new byte[]{1, 2, 3}, payload);
+        });
 
-        assertNotNull(result);
-        assertTrue(result.getData().isPresent());
-        verify(getTicketInterService, times(1)).decorate(any(), any());
-        verify(responseHandler, times(1)).createDataSuccessCommandResponse(any(), any());
-    }
-
-    @Test
-    public void testExecuteWithInvalidStatus() {
-        command.setBlockStatus(BlockStatus.INVALID);
-        var ticketList = new CommandResult<>(List.of(new TicketDetailsResponse()), Type.OK);
-        when(getTicketInterService.decorate(any(), any())).thenReturn(ticketList);
-
-        CommandResult<Void> result = updateAmountService.execute(command, context);
-
-        assertNotNull(result);
-        assertTrue(result.getData().isPresent());
-        verify(getTicketInterService, times(1)).decorate(any(), any());
-        verify(responseHandler, times(1)).createDataSuccessCommandResponse(any(), any());
-    }
-
-    @Test
-    public void testExecuteWithValidStatus() {
-        command.setBlockStatus(BlockStatus.VALID);
-        var ticketList = new CommandResult<>(List.of(new TicketDetailsResponse()), Type.OK);
-        when(getTicketInterService.decorate(any(), any())).thenReturn(ticketList);
-
-        CommandResult<Void> result = updateAmountService.execute(command, context);
-
-        assertNotNull(result);
-        assertTrue(result.getData().isPresent());
-        verify(getTicketInterService, times(1)).decorate(any(), any());
-        verify(responseHandler, times(1)).createDataSuccessCommandResponse(any(), any());
+        assertTrue(exception.getMessage().contains("reportName cannot be null"));
     }
 }
